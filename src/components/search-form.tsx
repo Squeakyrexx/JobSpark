@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect, useCallback, useTransition } from 'react';
@@ -117,29 +118,45 @@ export function SearchForm() {
     startTransition(async () => {
         try {
           const results = await sendToZapier(searchData);
-          toast({
-            title: 'Search complete!',
-            description: 'Your job results are ready.',
-          });
+
+          // Log the raw response from Zapier for debugging
+          console.log('Zapier response:', results);
+
+          // Check if the response has the expected 'jobs' array
+          if (results && Array.isArray(results.jobs)) {
+             toast({
+                title: 'Search complete!',
+                description: `Found ${results.jobs.length} jobs.`,
+              });
+             
+              // Store results and navigate
+              sessionStorage.setItem('jobResults', JSON.stringify(results.jobs));
+              
+              const params = new URLSearchParams();
+              if (values.jobTitle) params.append('title', values.jobTitle);
+              params.append('location', values.address);
+              params.append('radius', values.radius);
+              params.append('salary', salary[0].toString());
+              params.append('useResume', String(useResume));
           
-          // Store results and navigate
-          sessionStorage.setItem('jobResults', JSON.stringify(results.jobs || []));
-          
-          const params = new URLSearchParams();
-          if (values.jobTitle) params.append('title', values.jobTitle);
-          params.append('location', values.address);
-          params.append('radius', values.radius);
-          params.append('salary', salary[0].toString());
-          params.append('useResume', String(useResume));
-      
-          router.push(`/results?${params.toString()}`);
+              router.push(`/results?${params.toString()}`);
+          } else {
+             // Handle cases where the response is not in the expected format
+             toast({
+                title: 'Unexpected Response',
+                description: 'The agent responded, but the data format was incorrect.',
+                variant: 'destructive',
+             });
+             console.error('Expected response to have a "jobs" array, but received:', results);
+          }
 
         } catch (error) {
           toast({
             title: 'Zapier Error',
-            description: 'Could not get results from the webhook.',
+            description: 'Could not get results from the webhook. Check the console for details.',
             variant: 'destructive',
           });
+          console.error('Error fetching from Zapier:', error);
         }
     });
   }
