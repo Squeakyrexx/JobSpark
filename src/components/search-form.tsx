@@ -16,6 +16,7 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { MapPin, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { sendToZapier } from '@/services/zapier';
 
 const formSchema = z.object({
   jobTitle: z.string().optional(),
@@ -94,7 +95,7 @@ export function SearchForm() {
     }
   }, []);
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     if (useResume && !localStorage.getItem('userResume')) {
         toast({
             title: 'No Resume Found',
@@ -103,6 +104,29 @@ export function SearchForm() {
         });
         return;
     }
+
+    const searchData = {
+      title: values.jobTitle,
+      location: values.address,
+      radius: values.radius,
+      salary: salary[0],
+      useResume: useResume,
+    };
+
+    try {
+      await sendToZapier(searchData);
+      toast({
+        title: 'Search sent to Zapier!',
+        description: 'Your job search criteria have been sent to your webhook.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Zapier Error',
+        description: 'Could not send your search to the webhook.',
+        variant: 'destructive',
+      });
+    }
+
 
     const params = new URLSearchParams();
     if (values.jobTitle) params.append('title', values.jobTitle);
