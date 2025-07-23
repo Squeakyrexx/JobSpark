@@ -121,10 +121,11 @@ export function SearchForm() {
 
           console.log('Zapier response:', results);
           
-          if (!results || typeof results !== 'object' || !Array.isArray(results.jobs)) {
+          if (!results || !Array.isArray(results.jobs) || results.jobs.length === 0) {
              toast({
-                title: 'Agent Response Error',
-                description: 'The agent returned data in an unexpected format. Please ensure your agent is instructed to reply with a JSON object containing a "jobs" array.',
+                title: 'Agent Configuration Error',
+                description: 'The agent returned an empty or invalid response. Please add this instruction to your Zapier agent: "When you are done, you must reply to the webhook with the final list of jobs. The reply must be a JSON object with a single key called \'jobs\', which contains an array of job objects."',
+                duration: 15000,
                 variant: 'destructive',
              });
              console.error('Expected response to have a "jobs" array, but received:', results);
