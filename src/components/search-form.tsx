@@ -118,8 +118,6 @@ export function SearchForm() {
     startTransition(async () => {
         try {
           const results = await sendToZapier(searchData);
-
-          console.log('Zapier response:', results);
           
           if (!results || !Array.isArray(results.jobs) || results.jobs.length === 0) {
              toast({
@@ -150,7 +148,7 @@ export function SearchForm() {
 
         } catch (error) {
           toast({
-            title: 'Zapier Error',
+            title: 'Search Error',
             description: 'Could not get results from the webhook. Check the console for details.',
             variant: 'destructive',
           });
