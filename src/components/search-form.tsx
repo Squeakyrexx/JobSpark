@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
-import { MapPin, Search } from 'lucide-react';
+import { MapPin, Search, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { sendToZapier } from '@/services/zapier';
 
@@ -29,6 +29,7 @@ const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 export function SearchForm() {
   const router = useRouter();
   const { toast } = useToast();
+  const [isPending, startTransition] = useTransition();
   const [useResume, setUseResume] = useState(true);
   const [salary, setSalary] = useState([70000]);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
@@ -113,29 +114,34 @@ export function SearchForm() {
       useResume: useResume,
     };
 
-    try {
-      await sendToZapier(searchData);
-      toast({
-        title: 'Search sent to Zapier!',
-        description: 'Your job search criteria have been sent to your webhook.',
-      });
-    } catch (error) {
-      toast({
-        title: 'Zapier Error',
-        description: 'Could not send your search to the webhook.',
-        variant: 'destructive',
-      });
-    }
+    startTransition(async () => {
+        try {
+          const results = await sendToZapier(searchData);
+          toast({
+            title: 'Search complete!',
+            description: 'Your job results are ready.',
+          });
+          
+          // Store results and navigate
+          sessionStorage.setItem('jobResults', JSON.stringify(results.jobs || []));
+          
+          const params = new URLSearchParams();
+          if (values.jobTitle) params.append('title', values.jobTitle);
+          params.append('location', values.address);
+          params.append('radius', values.radius);
+          params.append('salary', salary[0].toString());
+          params.append('useResume', String(useResume));
+      
+          router.push(`/results?${params.toString()}`);
 
-
-    const params = new URLSearchParams();
-    if (values.jobTitle) params.append('title', values.jobTitle);
-    params.append('location', values.address);
-    params.append('radius', values.radius);
-    params.append('salary', salary[0].toString());
-    params.append('useResume', String(useResume));
-
-    router.push(`/results?${params.toString()}`);
+        } catch (error) {
+          toast({
+            title: 'Zapier Error',
+            description: 'Could not get results from the webhook.',
+            variant: 'destructive',
+          });
+        }
+    });
   }
 
   return (
@@ -232,9 +238,9 @@ export function SearchForm() {
                  </FormItem>
             </div>
             
-            <Button type="submit" size="lg" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-bold">
-              <Search className="mr-2 h-4 w-4" />
-              Search Jobs
+            <Button type="submit" size="lg" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-bold" disabled={isPending}>
+              {isPending ? <Loader2 className="animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+              {isPending ? 'Searching...' : 'Search Jobs'}
             </Button>
           </form>
         </Form>

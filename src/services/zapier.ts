@@ -11,6 +11,7 @@ export async function sendToZapier(data: any) {
       throw new Error(`Zapier webhook failed with status ${response.status}`);
     }
 
+    // Return the JSON response from the webhook
     return await response.json();
   } catch (error) {
     console.error('Error sending data to Zapier:', error);
