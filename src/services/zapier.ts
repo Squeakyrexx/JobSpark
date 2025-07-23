@@ -1,20 +1,25 @@
 export async function sendToZapier(data: any) {
-  const webhookUrl = 'https://hooks.zapier.com/hooks/catch/22464835/25d8f6c689f3421e976a9c887f519386/';
+  // The client will now send requests to our own API route
+  const webhookUrl = '/api/zapier';
 
   try {
     const response = await fetch(webhookUrl, {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify(data),
     });
 
     if (!response.ok) {
-      throw new Error(`Zapier webhook failed with status ${response.status}`);
+      const errorText = await response.text();
+      throw new Error(`API route failed with status ${response.status}: ${errorText}`);
     }
 
-    // Return the JSON response from the webhook
+    // Return the JSON response from the API route
     return await response.json();
   } catch (error) {
-    console.error('Error sending data to Zapier:', error);
+    console.error('Error sending data to Zapier via API route:', error);
     throw error;
   }
 }
