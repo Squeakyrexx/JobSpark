@@ -119,17 +119,14 @@ export function SearchForm() {
         try {
           const results = await sendToZapier(searchData);
 
-          // Log the raw response from Zapier for debugging
           console.log('Zapier response:', results);
 
-          // Check if the response has the expected 'jobs' array
           if (results && Array.isArray(results.jobs)) {
              toast({
                 title: 'Search complete!',
                 description: `Found ${results.jobs.length} jobs.`,
               });
              
-              // Store results and navigate
               sessionStorage.setItem('jobResults', JSON.stringify(results.jobs));
               
               const params = new URLSearchParams();
@@ -141,10 +138,9 @@ export function SearchForm() {
           
               router.push(`/results?${params.toString()}`);
           } else {
-             // Handle cases where the response is not in the expected format
              toast({
-                title: 'Unexpected Response',
-                description: 'The agent responded, but the data format was incorrect.',
+                title: 'Agent Response Error',
+                description: 'The agent replied, but the response was not in the expected format. Please ensure your agent is instructed to return a JSON object with a "jobs" array.',
                 variant: 'destructive',
              });
              console.error('Expected response to have a "jobs" array, but received:', results);
