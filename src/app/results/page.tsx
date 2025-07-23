@@ -1,5 +1,4 @@
-'use client';
-import { useSearchParams } from 'next/navigation';
+
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
@@ -7,6 +6,7 @@ import { JobCard } from '@/components/job-card';
 import { InsightsSidebar } from '@/components/insights-sidebar';
 import { Button } from '@/components/ui/button';
 import type { Job } from '@/lib/types';
+import { ResultsContainer } from '@/components/results-container';
 
 // Mock data as per proposal
 const mockJobs: Job[] = [
@@ -60,41 +60,30 @@ const mockJobs: Job[] = [
   },
 ];
 
-function ResultsComponent() {
-  const searchParams = useSearchParams();
-  const showMatchScore = searchParams.get('useResume') === 'true';
-
-  return (
-    <div className="container mx-auto py-8 px-4 md:px-6 fade-in">
-        <Button asChild variant="ghost" className="mb-8">
-            <Link href="/">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Search
-            </Link>
-        </Button>
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
-        <div className="lg:col-span-3 space-y-6">
-          {mockJobs.map((job, index) => (
-            <JobCard key={index} job={job} showMatchScore={showMatchScore} />
-          ))}
-        </div>
-        <aside className="lg:col-span-1">
-          <div className="sticky top-24">
-            <Suspense fallback={<InsightsSidebar.Skeleton />}>
-              <InsightsSidebar jobs={mockJobs} />
-            </Suspense>
-          </div>
-        </aside>
-      </div>
-    </div>
-  );
-}
-
 
 export default function ResultsPage() {
     return (
-        <Suspense fallback={<div>Loading...</div>}>
-            <ResultsComponent />
-        </Suspense>
+        <div className="container mx-auto py-8 px-4 md:px-6 fade-in">
+            <Button asChild variant="ghost" className="mb-8">
+                <Link href="/">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back to Search
+                </Link>
+            </Button>
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
+                <div className="lg:col-span-3 space-y-6">
+                    <Suspense fallback={<div>Loading jobs...</div>}>
+                        <ResultsContainer jobs={mockJobs} />
+                    </Suspense>
+                </div>
+                <aside className="lg:col-span-1">
+                <div className="sticky top-24">
+                    <Suspense fallback={<InsightsSidebar.Skeleton />}>
+                    <InsightsSidebar jobs={mockJobs} />
+                    </Suspense>
+                </div>
+                </aside>
+            </div>
+        </div>
     )
 }
