@@ -120,31 +120,32 @@ export function SearchForm() {
           const results = await sendToZapier(searchData);
 
           console.log('Zapier response:', results);
-
-          if (results && Array.isArray(results.jobs)) {
-             toast({
-                title: 'Search complete!',
-                description: `Found ${results.jobs.length} jobs.`,
-              });
-             
-              sessionStorage.setItem('jobResults', JSON.stringify(results.jobs));
-              
-              const params = new URLSearchParams();
-              if (values.jobTitle) params.append('title', values.jobTitle);
-              params.append('location', values.address);
-              params.append('radius', values.radius);
-              params.append('salary', salary[0].toString());
-              params.append('useResume', String(useResume));
           
-              router.push(`/results?${params.toString()}`);
-          } else {
+          if (!results || typeof results !== 'object' || !Array.isArray(results.jobs)) {
              toast({
                 title: 'Agent Response Error',
-                description: 'The agent replied, but the response was not in the expected format. Please ensure your agent is instructed to return a JSON object with a "jobs" array.',
+                description: 'The agent returned data in an unexpected format. Please ensure your agent is instructed to reply with a JSON object containing a "jobs" array.',
                 variant: 'destructive',
              });
              console.error('Expected response to have a "jobs" array, but received:', results);
+             return; 
           }
+
+          toast({
+            title: 'Search complete!',
+            description: `Found ${results.jobs.length} jobs.`,
+          });
+          
+          sessionStorage.setItem('jobResults', JSON.stringify(results.jobs));
+          
+          const params = new URLSearchParams();
+          if (values.jobTitle) params.append('title', values.jobTitle);
+          params.append('location', values.address);
+          params.append('radius', values.radius);
+          params.append('salary', salary[0].toString());
+          params.append('useResume', String(useResume));
+      
+          router.push(`/results?${params.toString()}`);
 
         } catch (error) {
           toast({
