@@ -1,3 +1,5 @@
+'use client';
+import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
@@ -58,12 +60,9 @@ const mockJobs: Job[] = [
   },
 ];
 
-export default function ResultsPage({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | string[] | undefined };
-}) {
-  const showMatchScore = searchParams?.useResume === 'true';
+function ResultsComponent() {
+  const searchParams = useSearchParams();
+  const showMatchScore = searchParams.get('useResume') === 'true';
 
   return (
     <div className="container mx-auto py-8 px-4 md:px-6 fade-in">
@@ -89,4 +88,13 @@ export default function ResultsPage({
       </div>
     </div>
   );
+}
+
+
+export default function ResultsPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <ResultsComponent />
+        </Suspense>
+    )
 }

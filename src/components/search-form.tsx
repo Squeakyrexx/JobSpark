@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { MapPin, Search } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
   jobTitle: z.string().optional(),
@@ -22,10 +23,15 @@ const formSchema = z.object({
   radius: z.string().default('25'),
 });
 
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
 export function SearchForm() {
   const router = useRouter();
+  const { toast } = useToast();
   const [useResume, setUseResume] = useState(true);
   const [salary, setSalary] = useState([70000]);
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const addressInputRef = useRef<HTMLInputElement | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -36,7 +42,68 @@ export function SearchForm() {
     },
   });
 
+  const loadGoogleMapsScript = useCallback(() => {
+    if (window.google) return;
+    if (!GOOGLE_MAPS_API_KEY) {
+        console.warn("Google Maps API key is missing. Autocomplete will be disabled.");
+        return;
+    }
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    document.head.appendChild(script);
+  }, []);
+
+  useEffect(() => {
+    loadGoogleMapsScript();
+  }, [loadGoogleMapsScript]);
+
+  const setupAutocomplete = useCallback(() => {
+    if (window.google && addressInputRef.current && !autocompleteRef.current) {
+        autocompleteRef.current = new window.google.maps.places.Autocomplete(
+            addressInputRef.current,
+            { types: ['(cities)'] }
+        );
+        autocompleteRef.current.addListener('place_changed', () => {
+            const place = autocompleteRef.current?.getPlace();
+            if (place?.formatted_address) {
+                form.setValue('address', place.formatted_address, { shouldValidate: true });
+            }
+        });
+    }
+  }, [form]);
+
+   useEffect(() => {
+    const interval = setInterval(() => {
+        if(window.google && addressInputRef.current) {
+            setupAutocomplete();
+            clearInterval(interval);
+        }
+    }, 100);
+    return () => clearInterval(interval);
+  }, [setupAutocomplete]);
+
+  useEffect(() => {
+    try {
+      const savedResume = localStorage.getItem('userResume');
+      setUseResume(!!savedResume);
+    } catch (e) {
+      // If local storage is disabled or fails, default to false
+      setUseResume(false);
+    }
+  }, []);
+
   function onSubmit(values: z.infer<typeof formSchema>) {
+    if (useResume && !localStorage.getItem('userResume')) {
+        toast({
+            title: 'No Resume Found',
+            description: 'Please upload a resume first or disable the "Use my saved resume" option.',
+            variant: 'destructive',
+        });
+        return;
+    }
+
     const params = new URLSearchParams();
     if (values.jobTitle) params.append('title', values.jobTitle);
     params.append('location', values.address);
@@ -86,7 +153,15 @@ export function SearchForm() {
                   <FormControl>
                     <div className="relative">
                       <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input placeholder="e.g., San Francisco, CA" className="pl-10" {...field} />
+                      <Input 
+                        placeholder="e.g., San Francisco, CA" 
+                        className="pl-10" 
+                        {...field}
+                        ref={(e) => {
+                            field.ref(e);
+                            addressInputRef.current = e;
+                        }}
+                      />
                     </div>
                   </FormControl>
                   <FormMessage />
