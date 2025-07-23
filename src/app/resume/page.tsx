@@ -52,7 +52,7 @@ export default function ResumePage() {
             ref={fileInputRef}
             onChange={handleFileChange}
             className="hidden"
-            accept=".pdf,.doc,.docx"
+            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
           />
 
           <Button onClick={handleUploadClick} className="w-full" variant="outline">
