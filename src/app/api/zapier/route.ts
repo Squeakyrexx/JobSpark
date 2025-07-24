@@ -1,10 +1,18 @@
 
 import { NextResponse } from 'next/server';
 
-// This is the actual Zapier webhook URL, kept on the server-side.
-const ZAPIER_WEBHOOK_URL = 'https://hooks.zapier.com/hooks/catch/22464835/25d8f6c689f3421e976a9c887f519386/';
+// This is the actual Zapier webhook URL, now fetched from environment variables for security.
+const ZAPIER_WEBHOOK_URL = process.env.ZAPIER_WEBHOOK_URL;
 
 export async function POST(request: Request) {
+  if (!ZAPIER_WEBHOOK_URL) {
+    console.error('ZAPIER_WEBHOOK_URL environment variable is not set.');
+    return new NextResponse(
+      JSON.stringify({ error: 'Application is not configured to connect to the agent.' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
   try {
     const body = await request.json();
 
