@@ -15,6 +15,7 @@ import { saveSearchToHistory } from '@/lib/history';
 
 const POLLING_INTERVAL = 5000; // 5 seconds
 const POLLING_TIMEOUT = 180000; // 3 minutes
+const STILL_WORKING_ERROR = 'The Zapier agent returned an invalid response. It must return a JSON object with a key "jobs" containing an array.';
 
 export default function ResultsPage() {
     const [jobs, setJobs] = useState<Job[] | null>(null);
@@ -57,50 +58,52 @@ export default function ResultsPage() {
                     description: 'The AI agent did not return results within 3 minutes.',
                     variant: 'destructive',
                 });
+                if (pollTimeoutId) clearTimeout(pollTimeoutId);
                 return;
             }
 
             try {
                 console.log("Polling for results...");
                 const results = await sendToZapier(parsedQuery);
-
-                // The crucial check: if jobs is not an array, agent is not done.
-                if (results && Array.isArray(results.jobs)) {
-                    setIsPolling(false);
-                    if (pollTimeoutId) clearTimeout(pollTimeoutId);
-
-                    toast({
-                        title: 'Search complete!',
-                        description: `Found ${results.jobs.length} jobs.`,
-                    });
-
-                    setJobs(results.jobs);
-                    // Only save to session storage if there are results to show
-                    if (results.jobs.length > 0) {
-                        sessionStorage.setItem('jobResults', JSON.stringify(results.jobs));
-                    }
-                    saveSearchToHistory({
-                        jobTitle: parsedQuery.title || 'Any',
-                        address: parsedQuery.location,
-                        resultsCount: results.jobs.length,
-                    });
-                } else {
-                    // If results.jobs is not an array, we keep polling
-                    console.log("Still waiting for results from agent...");
-                    pollTimeoutId = setTimeout(pollForResults, POLLING_INTERVAL);
-                }
-
-            } catch (err: any) {
-                console.error('Error during polling:', err);
-                // The error from sendToZapier is now a real error, not an intermediate state
-                setError(err.message || 'An unexpected error occurred while polling for results.');
-                toast({
-                    title: 'Search Error',
-                    description: err.message || 'Could not get results. Please check the console.',
-                    variant: 'destructive',
-                });
+                
+                // Success case: We got a valid response with a jobs array.
                 setIsPolling(false);
                 if (pollTimeoutId) clearTimeout(pollTimeoutId);
+
+                toast({
+                    title: 'Search complete!',
+                    description: `Found ${results.jobs.length} jobs.`,
+                });
+
+                setJobs(results.jobs);
+                // Only save to session storage if there are results to show
+                if (results.jobs.length > 0) {
+                    sessionStorage.setItem('jobResults', JSON.stringify(results.jobs));
+                }
+                saveSearchToHistory({
+                    jobTitle: parsedQuery.title || 'Any',
+                    address: parsedQuery.location,
+                    resultsCount: results.jobs.length,
+                });
+
+            } catch (err: any) {
+                // This is the key change: We check if the error is the one we expect
+                // when the agent is still working.
+                if (err.message && err.message.includes(STILL_WORKING_ERROR)) {
+                    console.log("Still waiting for results from agent...");
+                    pollTimeoutId = setTimeout(pollForResults, POLLING_INTERVAL);
+                } else {
+                    // This is a real, unexpected error.
+                    console.error('Error during polling:', err);
+                    setError(err.message || 'An unexpected error occurred while polling for results.');
+                    toast({
+                        title: 'Search Error',
+                        description: err.message || 'Could not get results. Please check the console.',
+                        variant: 'destructive',
+                    });
+                    setIsPolling(false);
+                    if (pollTimeoutId) clearTimeout(pollTimeoutId);
+                }
             }
         };
 
