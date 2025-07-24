@@ -18,18 +18,27 @@ export async function POST(request: Request) {
     });
 
     if (!zapierResponse.ok) {
-      // If Zapier returned an error, forward that error to the client
       const errorText = await zapierResponse.text();
-      console.error(`Error from Zapier: ${errorText}`);
+      console.error(`Error from Zapier webhook: ${errorText}`);
       return new NextResponse(
-        `Error from Zapier: ${errorText}`,
-        { status: zapierResponse.status }
+        JSON.stringify({ error: `Error from Zapier: ${errorText}` }),
+        { status: zapierResponse.status, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
     const responseData = await zapierResponse.json();
 
-    // Send the response from Zapier back to our client
+    // **Crucial Check**: Ensure the response from Zapier has the expected structure.
+    if (!responseData || !Array.isArray(responseData.jobs)) {
+        console.error('Invalid or empty response from Zapier agent. Expected a "jobs" array. Received:', responseData);
+        // Return a structured error that the frontend can handle.
+        return new NextResponse(
+            JSON.stringify({ error: 'The Zapier agent returned an invalid response. It must return a JSON object with a key "jobs" containing an array.' }),
+            { status: 500, headers: { 'Content-Type': 'application/json' } }
+        );
+    }
+
+    // Send the valid response from Zapier back to our client
     return NextResponse.json(responseData);
 
   } catch (error) {
