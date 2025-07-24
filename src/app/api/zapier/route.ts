@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 
 // This is the actual Zapier webhook URL, kept on the server-side.
@@ -19,6 +20,7 @@ export async function POST(request: Request) {
     if (!zapierResponse.ok) {
       // If Zapier returned an error, forward that error to the client
       const errorText = await zapierResponse.text();
+      console.error(`Error from Zapier: ${errorText}`);
       return new NextResponse(
         `Error from Zapier: ${errorText}`,
         { status: zapierResponse.status }
@@ -33,8 +35,8 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Error in Zapier API route:', error);
     if (error instanceof Error) {
-        return new NextResponse(error.message, { status: 500 });
+        return new NextResponse(JSON.stringify({ error: error.message }), { status: 500, headers: { 'Content-Type': 'application/json' } });
     }
-    return new NextResponse('An unknown error occurred.', { status: 500 });
+    return new NextResponse(JSON.stringify({ error: 'An unknown error occurred.' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 }
