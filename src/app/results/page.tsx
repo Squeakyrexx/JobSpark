@@ -13,9 +13,12 @@ import { sendToZapier } from '@/services/zapier';
 import { useToast } from '@/hooks/use-toast';
 import { saveSearchToHistory } from '@/lib/history';
 
+const POLLING_INTERVAL = 5000; // 5 seconds
+
 export default function ResultsPage() {
     const [jobs, setJobs] = useState<Job[] | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [isPolling, setIsPolling] = useState(false);
     const router = useRouter();
     const { toast } = useToast();
 
@@ -40,22 +43,25 @@ export default function ResultsPage() {
         }
 
         const parsedQuery = JSON.parse(searchQuery);
+        let pollTimeoutId: NodeJS.Timeout | null = null;
+        setIsPolling(true);
 
         const pollForResults = async () => {
             try {
+                console.log("Polling for results...");
                 const results = await sendToZapier(parsedQuery);
 
                 if (!results || !Array.isArray(results.jobs)) {
-                    toast({
-                        title: 'Agent Configuration Error',
-                        description: 'The agent returned an empty or invalid response. Please check your Zapier agent configuration.',
-                        duration: 15000,
-                        variant: 'destructive',
-                    });
-                    setError('The agent returned an invalid response.');
-                    return;
+                   // This is an intermediate state, not necessarily an error yet.
+                   // The webhook might just not be done. We'll keep polling.
+                   console.log("Still waiting for results from agent...");
+                   pollTimeoutId = setTimeout(pollForResults, POLLING_INTERVAL);
+                   return;
                 }
                 
+                setIsPolling(false);
+                if (pollTimeoutId) clearTimeout(pollTimeoutId);
+
                 toast({
                     title: 'Search complete!',
                     description: `Found ${results.jobs.length} jobs.`,
@@ -71,18 +77,31 @@ export default function ResultsPage() {
 
             } catch (err: any) {
                 console.error('Error fetching from Zapier:', err);
-                setError(err.message || 'Could not get results from the webhook. Please try again.');
-                toast({
-                    title: 'Search Error',
-                    description: err.message || 'Could not get results from the webhook. Check the console for details.',
-                    variant: 'destructive',
-                });
+                 // Only set a final error if polling has stopped
+                if (isPolling) {
+                    setError(err.message || 'Could not get results from the webhook. Please try again.');
+                    toast({
+                        title: 'Search Error',
+                        description: err.message || 'Could not get results from the webhook. Check the console for details.',
+                        variant: 'destructive',
+                    });
+                    setIsPolling(false);
+                }
             }
         };
 
         pollForResults();
+
+        // Cleanup function to stop polling if the component unmounts
+        return () => {
+            if (pollTimeoutId) {
+                clearTimeout(pollTimeoutId);
+            }
+        };
         
-    }, [router, toast]);
+    // We only want this to run once on mount, so we disable the lint warning.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     if (error) {
          return (
