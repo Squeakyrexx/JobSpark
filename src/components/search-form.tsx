@@ -178,7 +178,7 @@ export function SearchForm() {
   }
 
   return (
-    <Card className="w-full shadow-lg rounded-2xl">
+    <Card className="shadow-lg rounded-2xl">
       <CardHeader className="text-center">
         <CardTitle className="text-3xl font-headline">Find Your Next Job</CardTitle>
         <CardDescription>Enter your preferences to find jobs tailored for you.</CardDescription>
