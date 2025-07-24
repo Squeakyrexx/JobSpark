@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -18,6 +18,7 @@ import { Switch } from '@/components/ui/switch';
 import { MapPin, Search, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { sendToZapier } from '@/services/zapier';
+import { saveSearchToHistory } from '@/lib/history';
 
 const formSchema = z.object({
   jobTitle: z.string().optional(),
@@ -29,6 +30,7 @@ const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 export function SearchForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [useResume, setUseResume] = useState(true);
@@ -97,6 +99,19 @@ export function SearchForm() {
     }
   }, []);
 
+  // Effect to populate form from history link
+  useEffect(() => {
+    const historyJobTitle = searchParams.get('historyJobTitle');
+    const historyAddress = searchParams.get('historyAddress');
+    if (historyJobTitle) {
+      form.setValue('jobTitle', historyJobTitle);
+    }
+     if (historyAddress) {
+      form.setValue('address', historyAddress);
+    }
+  }, [searchParams, form]);
+
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (useResume && !localStorage.getItem('userResume')) {
         toast({
@@ -136,6 +151,11 @@ export function SearchForm() {
           });
           
           sessionStorage.setItem('jobResults', JSON.stringify(results.jobs));
+          saveSearchToHistory({
+            jobTitle: values.jobTitle || 'Any',
+            address: values.address,
+            resultsCount: results.jobs.length,
+          });
           
           const params = new URLSearchParams();
           if (values.jobTitle) params.append('title', values.jobTitle);

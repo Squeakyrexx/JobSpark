@@ -6,3 +6,11 @@ export interface Job {
   requirements: string[];
   match_score?: string;
 }
+
+export interface SearchHistoryItem {
+  id: string;
+  jobTitle: string;
+  address: string;
+  resultsCount: number;
+  timestamp: string;
+}

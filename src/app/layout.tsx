@@ -3,6 +3,8 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { Header } from '@/components/header';
 import { cn } from '@/lib/utils';
+import { AppSidebar } from '@/components/app-sidebar';
+import { SidebarProvider } from '@/components/ui/sidebar';
 
 export const metadata: Metadata = {
   title: 'JobSpark',
@@ -22,9 +24,16 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
         <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;500&display=swap" rel="stylesheet" />
       </head>
-      <body className={cn("font-body antialiased min-h-screen", "bg-background")}>
-        <Header />
-        <main className="p-4 sm:p-6 lg:p-8">{children}</main>
+      <body className={cn("font-body antialiased")}>
+        <SidebarProvider>
+          <div className="flex min-h-screen">
+            <AppSidebar />
+            <div className="flex-1 flex flex-col">
+              <Header />
+              <main className="p-4 sm:p-6 lg:p-8 flex-1">{children}</main>
+            </div>
+          </div>
+        </SidebarProvider>
         <Toaster />
       </body>
     </html>
