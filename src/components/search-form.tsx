@@ -130,55 +130,19 @@ export function SearchForm() {
       useResume: useResume,
     };
 
-    startTransition(async () => {
-        try {
-          const results = await sendToZapier(searchData);
-          
-          if (!results || !Array.isArray(results.jobs) || results.jobs.length === 0) {
-             toast({
-                title: 'Agent Configuration Error',
-                description: 'The agent returned an empty or invalid response. Please add this instruction to your Zapier agent: "When you are done, you must reply to the webhook with the final list of jobs. The reply must be a JSON object with a single key called \'jobs\', which contains an array of job objects."',
-                duration: 15000,
-                variant: 'destructive',
-             });
-             console.error('Expected response to have a "jobs" array, but received:', results);
-             return; 
-          }
+    const params = new URLSearchParams();
+    if (values.jobTitle) params.append('title', values.jobTitle);
+    params.append('location', values.address);
+    params.append('radius', values.radius);
+    params.append('salary', salary[0].toString());
+    params.append('useResume', String(useResume));
+    sessionStorage.setItem('searchQuery', JSON.stringify(searchData));
 
-          toast({
-            title: 'Search complete!',
-            description: `Found ${results.jobs.length} jobs.`,
-          });
-          
-          sessionStorage.setItem('jobResults', JSON.stringify(results.jobs));
-          saveSearchToHistory({
-            jobTitle: values.jobTitle || 'Any',
-            address: values.address,
-            resultsCount: results.jobs.length,
-          });
-          
-          const params = new URLSearchParams();
-          if (values.jobTitle) params.append('title', values.jobTitle);
-          params.append('location', values.address);
-          params.append('radius', values.radius);
-          params.append('salary', salary[0].toString());
-          params.append('useResume', String(useResume));
-      
-          router.push(`/results?${params.toString()}`);
-
-        } catch (error) {
-          toast({
-            title: 'Search Error',
-            description: 'Could not get results from the webhook. Check the console for details.',
-            variant: 'destructive',
-          });
-          console.error('Error fetching from Zapier:', error);
-        }
-    });
+    router.push(`/results?${params.toString()}`);
   }
 
   return (
-    <Card className="shadow-lg rounded-2xl">
+    <Card className="shadow-lg rounded-2xl w-full">
       <CardHeader className="text-center">
         <CardTitle className="text-3xl font-headline">Find Your Next Job</CardTitle>
         <CardDescription>Enter your preferences to find jobs tailored for you.</CardDescription>
