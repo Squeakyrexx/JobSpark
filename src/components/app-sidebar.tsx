@@ -30,11 +30,9 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarMenu>
           <SidebarMenuItem>
-            <Link href="/" passHref legacyBehavior>
+            <Link href="/" onClick={handleLinkClick}>
               <SidebarMenuButton
-                as="a"
                 isActive={pathname === '/'}
-                onClick={handleLinkClick}
                 tooltip={{ children: 'Search' }}
               >
                 <Search />
@@ -43,11 +41,9 @@ export function AppSidebar() {
             </Link>
           </SidebarMenuItem>
           <SidebarMenuItem>
-             <Link href="/resume" passHref legacyBehavior>
+             <Link href="/resume" onClick={handleLinkClick}>
               <SidebarMenuButton
-                as="a"
                 isActive={pathname === '/resume'}
-                onClick={handleLinkClick}
                 tooltip={{ children: 'My Resume' }}
               >
                 <FileText />
